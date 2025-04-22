@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1"/>
+  <title>Submit Attendance</title>
+  <link rel="stylesheet" href="/style.css"/>
+</head>
+<body>
+  <div class="container">
+    <h2>Doctor Attendance Form</h2>
+    <input id="doctorName" placeholder="Doctor Name"/>
+    <input id="doctorId" placeholder="Doctor ID"/>
+    <select id="status">
+      <option value="">Select Status</option>
+      <option value="P">Present</option>
+      <option value="AB">Absent</option>
+      <option value="A">Available</option>
+    </select>
+    <button onclick="submitAttendance()">Submit</button>
+    <button onclick="location.href='/phc_dashboard.html'">Back to Dashboard</button>
+    <button onclick="logout()">Logout</button>
+  </div>
+  <script src="/script.js"></script>
+</body>
+</html>

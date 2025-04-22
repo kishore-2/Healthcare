@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1"/>
+  <title>PHC Dashboard</title>
+  <link rel="stylesheet" href="/style.css"/>
+</head>
+<body>
+  <div class="container">
+    <button onclick="location.href='/doctor_attendance_form.html'">Attendance Form</button>
+    <h2>Inventory</h2>
+    <table id="inventoryTable">
+      <thead><tr><th>Item</th><th>Quantity</th></tr></thead>
+      <tbody></tbody>
+    </table>
+    <h2>Request Medical Resources</h2>
+    <input id="reqItem" placeholder="Item Name"/>
+    <input id="reqQty" type="number" placeholder="Quantity"/>
+    <button onclick="submitRequest()">Submit Request</button>
+    <button onclick="logout()">Logout</button>
+  </div>
+  <script src="/script.js"></script>
+</body>
+</html>
