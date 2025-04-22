@@ -39,9 +39,9 @@ healthcare-management/
 
 ## Docker to pull & run
 
-  '''bash
+  ```bash
   docker run -p 3000:3000 bpkk/healthcare‑app:latest
-  '''
+  ```
 
 ## 1. Clone the repo
 
