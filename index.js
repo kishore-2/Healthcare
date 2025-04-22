@@ -1,98 +1,108 @@
 // index.js
-const express = require('express');
-const path = require('path');
+const express  = require('express');
+const path     = require('path');
 const Database = require('better-sqlite3');
-const db = new Database(path.join(__dirname, 'data.db'));
+const db       = new Database(path.join(__dirname, 'data.db'));
 
 const app = express();
 app.use(express.json());
 app.use(express.static(path.join(__dirname, 'public')));
 
-// POST /api/login
+/* --------------------  Auth  -------------------- */
 app.post('/api/login', (req, res) => {
   const { username, password } = req.body;
   if (!username || !password) return res.status(400).json({ success: false });
+
   const user = db.prepare('SELECT * FROM users WHERE username = ?').get(username);
   if (!user || user.password !== password) return res.status(401).json({ success: false });
+
   res.json({ success: true, role: user.role });
 });
 
-// POST /api/attendance
+/* ------------------ Attendance ------------------ */
 app.post('/api/attendance', (req, res) => {
   const { doctorName, doctorId, status } = req.body;
-  if (!doctorName || !doctorId || !status) return res.status(400).json({ success: false });
-  const ts = new Date().toISOString().slice(0, 19).replace('T', ' ');
+  if (!doctorName || !doctorId || !status)
+    return res.status(400).json({ success: false });
+
+  const ts   = new Date().toISOString().slice(0, 19).replace('T', ' ');
   const info = db
-    .prepare('INSERT INTO attendance (doctorName, doctorId, status, timestamp) VALUES (?, ?, ?, ?)')
+    .prepare(
+      'INSERT INTO attendance (doctorName, doctorId, status, timestamp) VALUES (?,?,?,?)'
+    )
     .run(doctorName, doctorId, status, ts);
+
   res.json({ success: true, id: info.lastInsertRowid });
 });
 
-// GET /api/attendance
 app.get('/api/attendance', (req, res) => {
   const { status } = req.query;
-  let rows;
-  if (status) {
-    rows = db
-      .prepare('SELECT * FROM attendance WHERE status = ? ORDER BY id DESC')
-      .all(status);
-  } else {
-    rows = db.prepare('SELECT * FROM attendance ORDER BY id DESC').all();
-  }
+  const rows = status
+    ? db.prepare('SELECT * FROM attendance WHERE status = ? ORDER BY id DESC').all(status)
+    : db.prepare('SELECT * FROM attendance ORDER BY id DESC').all();
+
   res.json(rows);
 });
 
-// GET /api/inventory
+/* ------------------- Inventory ------------------ */
 app.get('/api/inventory', (_, res) => {
   const items = db.prepare('SELECT * FROM inventory').all();
   res.json(items);
 });
 
-// POST /api/resource-requests
+/* -------------- Resource Requests --------------- */
 app.post('/api/resource-requests', (req, res) => {
   const { itemName, quantity, requester } = req.body;
-  if (!itemName || quantity == null || !requester) return res.status(400).json({ success: false });
+  if (!itemName || quantity == null || !requester)
+    return res.status(400).json({ success: false });
+
   const info = db
-    .prepare('INSERT INTO resourceRequests (itemName, quantity, requester, status) VALUES (?, ?, ?, ?)')
+    .prepare(
+      'INSERT INTO resourceRequests (itemName, quantity, requester, status) VALUES (?,?,?,?)'
+    )
     .run(itemName, quantity, requester, 'Pending');
+
   res.json({ success: true, id: info.lastInsertRowid });
 });
 
-// GET /api/resource-requests
 app.get('/api/resource-requests', (_, res) => {
-  const rows = db.prepare('SELECT * FROM resourceRequests ORDER BY id DESC').all();
+  const rows = db
+    .prepare('SELECT * FROM resourceRequests ORDER BY id DESC')
+    .all();
   res.json(rows);
 });
 
-// POST /api/resource-requests/approve
+/* ---------- Approve / Reject a request ---------- */
 app.post('/api/resource-requests/approve', (req, res) => {
   const { id, approved } = req.body;
-  if (!id || typeof approved !== 'boolean') return res.status(400).json({ success: false });
+  if (!id || typeof approved !== 'boolean')
+    return res.status(400).json({ success: false });
 
-  // 1) update the request status
   const status = approved ? 'Approved' : 'Rejected';
+  const getReq = db.prepare('SELECT * FROM resourceRequests WHERE id = ?');
+  const reqRow = getReq.get(id);
+  if (!reqRow) return res.status(404).json({ success: false });
+
+  // 1. update request status
   db.prepare('UPDATE resourceRequests SET status = ? WHERE id = ?').run(status, id);
 
-  // 2) if approved, add to inventory (or insert new)
+  // 2. if approved, upsert inventory
   if (approved) {
-    const reqRow = db
-      .prepare('SELECT itemName, quantity FROM resourceRequests WHERE id = ?')
-      .get(id);
-    const { itemName, quantity } = reqRow;
-    const existing = db
-      .prepare('SELECT id FROM inventory WHERE itemName = ?')
-      .get(itemName);
-    if (existing) {
-      db.prepare('UPDATE inventory SET quantity = quantity + ? WHERE itemName = ?')
-        .run(quantity, itemName);
+    const selInv = db.prepare('SELECT * FROM inventory WHERE itemName = ?');
+    const inv    = selInv.get(reqRow.itemName);
+
+    if (inv) {
+      db.prepare('UPDATE inventory SET quantity = quantity + ? WHERE id = ?')
+        .run(reqRow.quantity, inv.id);
     } else {
       db.prepare('INSERT INTO inventory (itemName, quantity) VALUES (?, ?)')
-        .run(itemName, quantity);
+        .run(reqRow.itemName, reqRow.quantity);
     }
   }
 
   res.json({ success: true, message: `Request ${status}` });
 });
 
-// start server
-app.listen(3000, () => console.log('Server running at http://localhost:3000'));
+/* -------------------  Start up ------------------ */
+const PORT = process.env.PORT || 3000;
+app.listen(PORT, () => console.log(`Server running at http://localhost:${PORT}`));
