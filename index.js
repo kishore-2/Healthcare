@@ -1,117 +1,89 @@
 // index.js
-const express   = require('express');
-const path      = require('path');
-const Database  = require('better-sqlite3');
-
-// open (or create) SQLite database
+const express = require('express');
+const cors = require('cors');
+const path = require('path');
+const Database = require('better-sqlite3');
 const db = new Database(path.join(__dirname, 'data.db'));
 
 const app = express();
+app.use(cors());
 app.use(express.json());
-
-// Serve your frontend from /public
 app.use(express.static(path.join(__dirname, 'public')));
 
-// ─── Health Check ───────────────────────────────────────────────────────────────
-// Railway will probe GET / to verify your app is alive.
-// Static middleware will serve your index.html at '/', which works,
-// but we can explicitly respond here if you prefer:
-app.get('/', (req, res) => {
-  res.send('OK');
-});
-
-// ─── Authentication ──────────────────────────────────────────────────────────────
+// POST /api/login
 app.post('/api/login', (req, res) => {
-  const { username, password } = req.body;
-  if (!username || !password) return res.status(400).json({ success: false });
-
+  const { username, password, role } = req.body;
+  if (!username || !password || !role) {
+    return res.status(400).json({ success: false });
+  }
   const user = db.prepare('SELECT * FROM users WHERE username = ?').get(username);
-  if (!user || user.password !== password) {
+  if (!user || user.password !== password || user.role !== role) {
     return res.status(401).json({ success: false });
   }
-
-  // on success, send back the role
   res.json({ success: true, role: user.role });
 });
 
-// ─── Attendance ────────────────────────────────────────────────────────────────
-// submit attendance
+// POST /api/attendance
 app.post('/api/attendance', (req, res) => {
   const { doctorName, doctorId, status } = req.body;
-  if (!doctorName || !doctorId || !status) return res.status(400).json({ success: false });
-
+  if (!doctorName || !doctorId || !status) {
+    return res.status(400).json({ success: false });
+  }
   const ts = new Date().toISOString().slice(0, 19).replace('T', ' ');
   const info = db.prepare(
     'INSERT INTO attendance (doctorName, doctorId, status, timestamp) VALUES (?, ?, ?, ?)'
   ).run(doctorName, doctorId, status, ts);
-
   res.json({ success: true, id: info.lastInsertRowid });
 });
 
-// fetch attendance (optional `?status=`)
+// GET /api/attendance
 app.get('/api/attendance', (req, res) => {
   const { status } = req.query;
-  const stmt = status
-    ? db.prepare('SELECT * FROM attendance WHERE status = ? ORDER BY id DESC')
-    : db.prepare('SELECT * FROM attendance ORDER BY id DESC');
-
-  res.json(stmt.all(status));
+  let rows;
+  if (status) {
+    rows = db.prepare('SELECT * FROM attendance WHERE status = ? ORDER BY id DESC').all(status);
+  } else {
+    rows = db.prepare('SELECT * FROM attendance ORDER BY id DESC').all();
+  }
+  res.json(rows);
 });
 
-// ─── Inventory ────────────────────────────────────────────────────────────────
-app.get('/api/inventory', (_, res) => {
+// GET /api/inventory
+app.get('/api/inventory', (req, res) => {
   const items = db.prepare('SELECT * FROM inventory').all();
   res.json(items);
 });
 
-// ─── Resource Requests ─────────────────────────────────────────────────────────
-// submit a new request
+// POST /api/resource-requests
 app.post('/api/resource-requests', (req, res) => {
   const { itemName, quantity, requester } = req.body;
-  if (!itemName || quantity == null || !requester) return res.status(400).json({ success: false });
-
+  if (!itemName || quantity == null || !requester) {
+    return res.status(400).json({ success: false });
+  }
   const info = db.prepare(
     'INSERT INTO resourceRequests (itemName, quantity, requester, status) VALUES (?, ?, ?, ?)'
   ).run(itemName, quantity, requester, 'Pending');
-
   res.json({ success: true, id: info.lastInsertRowid });
 });
 
-// fetch all requests
-app.get('/api/resource-requests', (_, res) => {
+// GET /api/resource-requests
+app.get('/api/resource-requests', (req, res) => {
   const rows = db.prepare('SELECT * FROM resourceRequests ORDER BY id DESC').all();
   res.json(rows);
 });
 
-// approve or reject
+// POST /api/resource-requests/approve
 app.post('/api/resource-requests/approve', (req, res) => {
   const { id, approved } = req.body;
-  if (!id || typeof approved !== 'boolean') return res.status(400).json({ success: false });
-
-  const newStatus = approved ? 'Approved' : 'Rejected';
-  db.prepare('UPDATE resourceRequests SET status = ? WHERE id = ?').run(newStatus, id);
-
-  // If approved, also increment that item in inventory:
-  if (approved) {
-    // find or insert into inventory
-    const reqRow = db.prepare('SELECT * FROM resourceRequests WHERE id = ?').get(id);
-    const existing = db.prepare('SELECT * FROM inventory WHERE itemName = ?').get(reqRow.itemName);
-
-    if (existing) {
-      db.prepare('UPDATE inventory SET quantity = quantity + ? WHERE id = ?')
-        .run(reqRow.quantity, existing.id);
-    } else {
-      db.prepare('INSERT INTO inventory (itemName, quantity) VALUES (?, ?)')
-        .run(reqRow.itemName, reqRow.quantity);
-    }
+  if (!id || typeof approved !== 'boolean') {
+    return res.status(400).json({ success: false });
   }
-
-  res.json({ success: true, message: `Request ${newStatus}` });
+  const status = approved ? 'Approved' : 'Rejected';
+  db.prepare('UPDATE resourceRequests SET status = ? WHERE id = ?').run(status, id);
+  res.json({ success: true, message: `Request ${status}` });
 });
 
-// ─── Start Server ──────────────────────────────────────────────────────────────
-// Use the PORT env var and bind to 0.0.0.0 for Railway compatibility
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, '0.0.0.0', () => {
-  console.log(`Server running at http://0.0.0.0:${PORT}`);
+  console.log(`Server running on port ${PORT}`);
 });
