@@ -1,6 +1,6 @@
 # .gitignore
 node_modules/
 *.sqlite
-/data.db
+# /data.db
 .env
 dist/
