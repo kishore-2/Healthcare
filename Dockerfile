@@ -1,18 +1,21 @@
-# Use official Node.js LTS image
-FROM node:20
+# use a small Node image
+FROM node:20-alpine
 
-# Set working directory inside container
+# create app dir
 WORKDIR /app
 
-# Copy package.json and install dependencies
+# copy package files & install deps
 COPY package*.json ./
-RUN npm install
+RUN npm install --production
 
-# Copy rest of the application files
+# copy all source
 COPY . .
 
-# Expose port
-EXPOSE 3000
+# run DB migration (creates/seeds data.db)
+RUN npm run migrate
 
-# Start the application
-CMD ["node", "index.js"]
+# expose port
+EXPOSE 8080
+
+# start server
+CMD ["npm", "start"]

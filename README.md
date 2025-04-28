@@ -24,6 +24,8 @@ healthcare-management/
 ├── migrate.js
 ├── index.js
 ├── package.json
+├── reset-db.js
+├── Dockerfile
 └── public/
     ├── index.html
     ├── doctor_attendance_form.html
@@ -39,48 +41,42 @@ healthcare-management/
 
 ## Docker to pull & run
 
-  ```bash
   docker run -p 3000:3000 bpkk/healthcare‑app:latest
-  ```
 
 ## 1. Clone the repo
 
-   ```bash
    git clone https://github.com/kishore-2/Healthcare-System.git
    cd Healthcare-System
-   ```
 
 ## 2. Install deps & Initialize the database
 
-    ```bash
     npm install
     node migrate.js
-    ```
 
 ## 3. This creates data.db and seeds:
 
-    ```sql
     Users: kishore/123 (DDHS), phc1/123 (PHC), sub1/123 (Sub‑Center)
-    ```
 
 ## 4. Inventory items:
 
 ### Run the server
 
-    ```bash
     node index.js
-    ```
 
 ### The API and front‑end will be available at
-    ```
     http://localhost:3000
-    ```
 
 ### Test via browser
 
 - Login as each role, verify dashboards
 - PHC/Sub‑Center can submit attendance and resource requests.
 - DDHS can view/filter attendance, approve/reject requests (and on approval the inventory updates automatically).
+
+---
+
+## 4. To Reset the data.db for fresh start:
+
+    node reset-db.js
 
 ---
 
@@ -136,13 +132,11 @@ healthcare-management/
   2. Seed default users (`kishore/123`, `phc1/123`, `sub1/123`) and initial inventory.
 - **Resetting Data**  
   - For a fresh prototype run, you can delete `data.db` and re‑run:
-    ```bash
+
     rm data.db
     node migrate.js
-    ```
 
 ### 5. Bringing It All Together
 1. **Start the App**  
-   ```bash
-   node migrate.js       # one‑time setup
-   node index.js         # serves at http://localhost:3000
+   node migrate.js
+   node index.js

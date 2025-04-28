@@ -1,15 +1,16 @@
 {
   "name": "healthcare-management",
   "version": "1.0.0",
-  "description": "Healthcare Management System for PHC and DDHS",
   "main": "index.js",
   "scripts": {
-    "start": "node index.js",
-    "migrate": "node migrate.js"
+    "reset": "node reset-db.js",
+    "migrate": "node migrate.js",
+    "start": "node index.js"
   },
   "dependencies": {
-    "express": "^5.1.0",
     "better-sqlite3": "^11.9.1",
-    "cors": "^2.8.5"
+    "cors": "^2.8.5",
+    "express": "^5.1.0",
+    "sqlite3": "^5.1.7"
   }
 }
