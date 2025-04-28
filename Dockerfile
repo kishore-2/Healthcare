@@ -1,21 +1,29 @@
-# use a small Node image
-FROM node:20-alpine
+# Use official Node.js 20 base image
+FROM node:20
 
-# create app dir
+# Install build tools for better-sqlite3 (needed!)
+RUN apt-get update && apt-get install -y python3 make g++ && rm -rf /var/lib/apt/lists/*
+
+# Set working directory
 WORKDIR /app
 
-# copy package files & install deps
+# Copy package.json and package-lock.json
 COPY package*.json ./
-RUN npm install --production
 
-# copy all source
+# Install all dependencies (build native modules)
+RUN npm install
+
+# Copy rest of the application code
 COPY . .
 
-# run DB migration (creates/seeds data.db)
+# Run migration to create data.db
 RUN npm run migrate
 
-# expose port
+# Set environment variable
+ENV NODE_ENV=production
+
+# Expose port (use 8080 because Azure expects this for Linux apps)
 EXPOSE 8080
 
-# start server
+# Start server
 CMD ["npm", "start"]

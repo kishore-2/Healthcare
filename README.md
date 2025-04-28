@@ -21,11 +21,13 @@
 
 ```
 healthcare-management/
+├── Dockerfile
+├── docker-compose.yml
 ├── migrate.js
+├── reset-db.js
 ├── index.js
 ├── package.json
-├── reset-db.js
-├── Dockerfile
+├── README.md
 └── public/
     ├── index.html
     ├── doctor_attendance_form.html
@@ -33,6 +35,7 @@ healthcare-management/
     ├── ddhs_dashboard.html
     ├── script.js
     └── style.css
+
 ```
 
 ---
@@ -64,7 +67,7 @@ healthcare-management/
     node index.js
 
 ### The API and front‑end will be available at
-    http://localhost:3000
+    http://localhost:8080
 
 ### Test via browser
 
